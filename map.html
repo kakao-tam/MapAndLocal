@@ -1,20 +1,394 @@
-<!DOCTYPE html>
-<html>
-<head>
-	<meta charset="utf-8"/>
-	<title>Kakao 지도 시작하기</title>
-</head>
-<body>
-	<div id="map" style="width:500px;height:400px;"></div>
-	<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=2222222222222222222222222222222222"></script>
-	<script>
-		var container = document.getElementById('map');
-		var options = {
-			center: new kakao.maps.LatLng(33.450701, 126.570667),
-			level: 3
-		};
+<!doctype html>
+<html lang="kr">
 
-		var map = new kakao.maps.Map(container, options);
-	</script>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no">
+    <meta name="theme-color" content="#000000">
+    <base href="/" />
+    <link rel="manifest" href="/manifest.json">
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link href="/static/css/2.86aa6515.chunk.css" rel="stylesheet">
+    <link href="/static/css/main.a583af82.chunk.css" rel="stylesheet">
+    <!--highlight.js cdn-->
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.4.1/styles/default.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.4.1/highlight.min.js"></script>
+    <!--bootstrapcdn-->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <title>카카오 맵</title>
+    <script type="text/javascript"
+        src="//dapi.kakao.com/v2/maps/sdk.js?appkey=2d68640b56d986af5c8a48505c7c8c71&libraries=services,clusterer,drawing"></script>
+    <script src="kakaoMapsJavaScriptAPIwrapper.js"></script>
+
+    <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.0.1/css/toastr.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.0.1/js/toastr.js"></script>
+    <script>
+        console.stdlog = console.log.bind(console);
+        console.log = function () {
+            output = JSON.stringify(Array.from(arguments));
+            setToastr(output);
+            console.stdlog.apply(console, arguments);
+        }
+
+        function setToastr(output) {
+            toastr.options.timeOut = 4000;
+            toastr.options.closeButton = true;
+            if (output.indexOf("msg") > -1 && output.indexOf("code") > -1) toastr.error(output);
+            else toastr.success(output);
+        }
+    </script>
+
+    <style>
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        .map_wrap {
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            height: 350px;
+        }
+
+        .radius_border {
+            visibility: hidden;
+            border: 0px solid #919191;
+            border-radius: 5px;
+        }
+
+        .custom_typecontrol {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            overflow: hidden;
+            width: 130px;
+            height: 30px;
+            margin: 0;
+            padding: 0;
+            z-index: 1;
+            font-size: 12px;
+            font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+        }
+
+        .custom_typecontrol span {
+            display: block;
+            width: 65px;
+            height: 30px;
+            float: left;
+            text-align: center;
+            line-height: 30px;
+            cursor: pointer;
+        }
+
+        .custom_typecontrol .unselected_btn {
+            background: #fff;
+            background: linear-gradient(#fff, #e6e6e6);
+        }
+
+        .custom_typecontrol .unselected_btn:hover {
+            background: #f5f5f5;
+            background: linear-gradient(#f5f5f5, #e3e3e3);
+        }
+
+        .custom_typecontrol .unselected_btn:active {
+            background: #e6e6e6;
+            background: linear-gradient(#e6e6e6, #fff);
+        }
+
+        .custom_typecontrol .selected_btn {
+            color: #fff;
+            background: #425470;
+            background: linear-gradient(#425470, #5b6d8a);
+        }
+
+        .custom_typecontrol .selected_btn:hover {
+            color: #fff;
+        }
+
+        .custom_zoomcontrol {
+            position: absolute;
+            top: 50px;
+            right: 10px;
+            width: 36px;
+            height: 80px;
+            overflow: hidden;
+            z-index: 1;
+            background-color: #f5f5f5;
+        }
+
+        .custom_zoomcontrol span {
+            display: block;
+            width: 36px;
+            height: 40px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .custom_zoomcontrol span img {
+            width: 15px;
+            height: 15px;
+            padding: 0px 0;
+            border: none;
+        }
+
+        .custom_zoomcontrol span:first-child {
+            border-bottom: 1px solid #bfbfbf;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <nav class="navbar-expand-sm navbar-toggleable-sm ng-white border-bottom box-shadow mb-3 navbar navbar-light">
+            <div class="container"><a class="navbar-brand" href="/"><img src="/img/icon/googsu.png" class="logo"
+                        alt="logo">Kakao API Test</a>
+                <h1>Kakao Maps JavaScript SDK Wrapper</h1>
+            </div>
+        </nav>
+    </header>
+    <div class="container">
+        <ul class="list-group">
+            <li class="list-group-item">
+                <div class="tab-content">
+
+                    <div class="map_wrap">
+                        <div id="map" style="width:100%;height:350px;position:relative;overflow:hidden;"></div>
+                        <!-- 지도타입 컨트롤 div 입니다 -->
+                        <div class="custom_typecontrol radius_border">
+                            <span id="btnRoadmap" class="selected_btn" onclick="map.setMapType('roadmap')">지도</span>
+                            <span id="btnSkyview" class="unselected_btn" onclick="map.setMapType('skyview')">스카이뷰</span>
+                        </div>
+                        <!-- 지도 확대, 축소 컨트롤 div 입니다 -->
+                        <div class="custom_zoomcontrol radius_border">
+                            <span onclick="map.zoomIn()"><img
+                                    src="https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/ico_plus.png"
+                                    alt="확대"></span>
+                            <span onclick="map.zoomOut()"><img
+                                    src="https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/ico_minus.png"
+                                    alt="축소"></span>
+                        </div>
+                    </div>
+
+                </div>
+            </li>
+        </ul>
+
+        <div class="card-group">
+            <div class="card border-dark mb-3">
+                <div class="card-header">
+                    객체 생성
+                    <script>
+                        map = new Map(33.450701, 126.570667, "map", 3);
+
+                        // 지도에 클릭 이벤트를 등록합니다
+                        // 지도를 클릭하면 마지막 파라미터로 넘어온 함수를 호출합니다
+                        kakao.maps.event.addListener(map.map, 'click', function (mouseEvent) {
+                            // 클릭한 위도, 경도 정보를 가져옵니다 
+                            var latlng = mouseEvent.latLng;
+                            var message = '클릭한 위치의 위도는 ' + latlng.getLat() + ' 이고, ';
+                            message += '경도는 ' + latlng.getLng() + ' 입니다';
+
+                            map.marker.setPosition(latlng);
+                            console.log(message);
+                        });
+                        // 마우스 드래그로 지도 이동이 완료되었을 때 마지막 파라미터로 넘어온 함수를 호출하도록 이벤트를 등록합니다
+                        kakao.maps.event.addListener(map.map, 'dragend', function () {
+                            // 지도 중심좌표를 얻어옵니다 
+                            var latlng = map.map.getCenter();
+                            var message = '변경된 지도 중심좌표는 ' + latlng.getLat() + ' 이고, ';
+                            message += '경도는 ' + latlng.getLng() + ' 입니다';
+                            console.log(message);
+                        });
+                        // 지도가 이동, 확대, 축소로 인해 지도영역이 변경되면 마지막 파라미터로 넘어온 함수를 호출하도록 이벤트를 등록합니다
+                        kakao.maps.event.addListener(map.map, 'bounds_changed', function () {
+                            // 지도 영역정보를 얻어옵니다 
+                            var bounds = map.map.getBounds();
+                            // 영역정보의 남서쪽 정보를 얻어옵니다 
+                            var swLatlng = bounds.getSouthWest();
+                            // 영역정보의 북동쪽 정보를 얻어옵니다 
+                            var neLatlng = bounds.getNorthEast();
+                            var message = '<p>영역좌표는 남서쪽 위도, 경도는  ' + swLatlng.toString() + '이고 <br>';
+                            message += '북동쪽 위도, 경도는  ' + neLatlng.toString() + '입니다 </p>';
+                            console.log(message);
+                        });
+                        // 타일 로드가 완료되면 지도 중심에 마커를 표시합니다
+                        kakao.maps.event.addListener(map.map, 'tilesloaded', displayMarker);
+
+                        function displayMarker() {
+
+                            // 마커의 위치를 지도중심으로 설정합니다 
+                            map.marker.setPosition(map.map.getCenter());
+                            map.marker.setMap(map.map);
+
+                            // 아래 코드는 최초 한번만 타일로드 이벤트가 발생했을 때 어떤 처리를 하고 
+                            // 지도에 등록된 타일로드 이벤트를 제거하는 코드입니다 
+                            // kakao.maps.event.removeListener(map, 'tilesloaded', displayMarker);
+                            console.log("tilesloaded");
+                        }                                          
+                    </script>
+                </div>
+                <div class="card-body text-dark">
+                    map = new Map(33.450701, 126.570667,"map",3);
+                </div>
+                <div class="card-header">
+                    위치 변경
+                </div>
+                <div class="card-body text-dark">
+                    <a href="javascript:map.setCenter(33.452613, 126.570888)"
+                        class="btn btn-primary">map.setCenter(33.452613, 126.570888)</a>
+                    <a href="javascript:map.panTo(33.450580, 126.574942)" class="btn btn-primary">map.panTo(33.450580,
+                        126.574942)</a>
+                </div>
+                <div class="card-header">
+                    확대/축소
+                </div>
+                <div class="card-body text-dark">
+                    <a href="javascript:map.zoomIn()" class="btn btn-primary">map.zoomIn()</a>
+                    <a href="javascript:map.zoomOut()" class="btn btn-primary">map.zoomOut()</a>
+                </div>
+                <div class="card-header">
+                    지도/스카이뷰
+                </div>
+                <div class="card-body text-dark">
+                    <a href="javascript:map.setMapType('roadmap')" class="btn btn-primary">map.setMapType('roadmap')</a>
+                    <a href="javascript:map.setMapType('skyview')" class="btn btn-primary">map.setMapType('skyview')</a>
+                </div>
+                <div class="card-header">
+                    지도 이동 막기/허용
+                </div>
+                <div class="card-body text-dark">
+                    <a href="javascript:map.setDraggable(false)" class="btn btn-primary">map.setDraggable(false)</a>
+                    <a href="javascript:map.setDraggable(true)" class="btn btn-primary">map.setDraggable(true)</a>
+                </div>
+                <div class="card-header">
+                    마우스 휠이나 멀티터치로 지도 Zoom 막기/허용
+                </div>
+                <div class="card-body text-dark">
+                    <a href="javascript:map.setZoomable(false)" class="btn btn-primary">map.setZoomable(false)</a>
+                    <a href="javascript:map.setZoomable(true)" class="btn btn-primary">map.setZoomable(true)</a>
+                </div>
+            </div>
+            <div class="card border-dark mb-3">
+                <div class="card-header">
+                    객체 하나 더 생성
+                </div>
+                <div class="card-body text-dark">
+                    <div id="map2" style="width:100%;height:50px;"></div>
+                </div>
+                <div class="card-body text-dark">
+                    map2 = new Map(33.450701, 126.570667,"map2",3);
+                    <script>
+                        var map2 = new Map(33.450701, 126.570667, "map2", 3);
+                    </script>
+                </div>
+                <div class="card-header">
+                    객체 재설정 (&멀티 포인트)
+                </div>
+                <div class="card-body text-dark">
+                    <a href="javascript:map.reset()" class="btn btn-primary">map.reset())</a>
+                </div>
+                <div class="card-header">
+                    지도 사이즈 재설정
+                </div>
+                <div class="card-body text-dark">
+                    <a href="javascript:map.resizeMap('100%','200px')"
+                        class="btn btn-primary">map.resizeMap('100%','200px')</a>
+                </div>
+                <div class="card-header">
+                    지도 정보 객체
+                </div>
+                <div class="card-body text-dark">
+                    <a href="javascript:map.getInfo()" class="btn btn-primary">map.getInfo()</a>
+                </div>
+                <div class="card-header">
+                    맵타입(지도, 스카이뷰) 선택 객체 추가
+                </div>
+                <div class="card-body text-dark">
+                    <a href="javascript:map.addControlForMapType()"
+                        class="btn btn-primary">map.addControlForMapType()</a>
+                </div>
+                <div class="card-header">
+                    Zoom 객체 추가
+                </div>
+                <div class="card-body text-dark">
+                    <a href="javascript:map.addControlForZoom()" class="btn btn-primary">map.addControlForZoom()</a>
+                </div>
+                <div class="card-header">
+                    Custom 객체
+                </div>
+                <div class="card-body text-dark">
+                    지도 위, html 객체 표시 하고 스크립트 이벤트 사용하므로 예제 생략
+                </div>
+            </div>
+            <div class="card border-dark mb-3">
+                <div class="card-header">교통정보 추가하기</div>
+                <div class="card-body text-dark">
+                    <a href="javascript:map.addOverlayMapTypeId('traffic')"
+                        class="btn btn-primary">map.addOverlayMapTypeId('traffic')</a>
+                    <a href="javascript:map.removeOverlayMapTypeId('traffic')"
+                        class="btn btn-primary">map.removeOverlayMapTypeId('traffic')</a>
+                </div>
+                <div class="card-header">로드뷰 정보 추가하기</div>
+                <div class="card-body text-dark">
+                    <a href="javascript:map.addOverlayMapTypeId('roadview')"
+                        class="btn btn-primary">map.addOverlayMapTypeId('roadview')</a>
+                    <a href="javascript:map.removeOverlayMapTypeId('roadview')"
+                        class="btn btn-primary">map.removeOverlayMapTypeId('roadview')</a>
+                </div>
+                <div class="card-header">지형도 정보 추가하기</div>
+                <div class="card-body text-dark">
+                    <a href="javascript:map.addOverlayMapTypeId('terrain')"
+                        class="btn btn-primary">map.addOverlayMapTypeId('terrain')</a>
+                    <a href="javascript:map.removeOverlayMapTypeId('terrain')"
+                        class="btn btn-primary">map.removeOverlayMapTypeId('terrain')</a>
+                </div>
+                <div class="card-header">지적 편집도 정보 추가하기</div>
+                <div class="card-body text-dark">
+                    <a href="javascript:map.addOverlayMapTypeId('use_district')"
+                        class="btn btn-primary">map.addOverlayMapTypeId('use_district')</a>
+                    <a href="javascript:map.removeOverlayMapTypeId('use_district')"
+                        class="btn btn-primary">map.removeOverlayMapTypeId('use_district')</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-group">
+            <div class="card text-white bg-dark mb-3">
+                <div class="card-header">Link</div>
+                <div class="card-body">
+                    <h5 class="card-title">GitHub</h5>
+                    <p class="card-text"><a href="https://github.com/kakao-tam/MapAndLocal" target="_blank">Kakao
+                            MapAndLocal</a></p>
+                    <p></p>
+                    <h5 class="card-title">Guide</h5>
+                    <p class="card-text"><a href="https://kakao-tam.tistory.com/36" target="_blank">JavaScript - Kakao
+                            Maps
+                            JavaScript SDK Wrapper</a></p>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+        integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+        integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+        crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+        integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+        crossorigin="anonymous"></script>
+    <script>
+        hljs.initHighlightingOnLoad();
+    </script>
 </body>
+
 </html>
